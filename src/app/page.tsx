@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import IAttendROICalculator from "@/components/IAttendROICalculator";
 
 export default function Home() {
-  redirect("/roi-calculator");
+  return <IAttendROICalculator />;
 }
