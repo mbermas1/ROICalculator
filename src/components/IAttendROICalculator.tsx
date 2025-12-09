@@ -1,6 +1,8 @@
 "use client";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { Calculator, TrendingDown, Clock, DollarSign, AlertCircle, CheckCircle, Download, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ROICalculations {
   eventsPerYear: number;
@@ -25,36 +27,37 @@ interface ROICalculations {
 
 export default function IAttendROICalculator() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [formData, setFormData] = useState({
     // Organization Info
     organizationType: '',
     organizationSize: '',
-    
+
     // Event Volume
     eventsPerYear: '',
     avgAttendeesPerEvent: '',
-    
+
     // Staff Time
     registrationHours: '',
     checkInHours: '',
     badgePrintingHours: '',
     certificateHours: '',
     reportingHours: '',
-    
+
     // Staff Costs
     avgHourlyRate: '',
-    
+
     // Error & Rework
     errorRate: '',
     reworkHours: '',
-    
+
     // Contact Info (for lead capture)
     firstName: '',
     lastName: '',
     email: '',
     company: '',
     phone: '',
-    
+
     // Optional
     sendReport: true
   });
@@ -62,12 +65,20 @@ export default function IAttendROICalculator() {
   const [showResults, setShowResults] = useState(false);
   const [calculations, setCalculations] = useState<ROICalculations | null>(null);
 
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+
+    // Remove error message instantly when user starts typing/selecting
+    setErrors(prevErrors => {
+      const newErrors = { ...prevErrors };
+      delete newErrors[field];
+      return newErrors;
+    });
   };
 
   const calculateROI = () => {
@@ -85,82 +96,79 @@ export default function IAttendROICalculator() {
 
     // Calculate total hours per event
     const hoursPerEvent = regHours + checkHours + badgeHours + certHours + reportHours;
-    
+
     // Calculate error/rework costs
     const errorHoursPerEvent = (hoursPerEvent * errorRate / 100) + reworkHours;
-    
+
     // Total hours including errors
     const totalHoursPerEvent = hoursPerEvent + errorHoursPerEvent;
-    
+
     // Annual calculations
     const annualHours = totalHoursPerEvent * events;
     const annualCost = annualHours * hourlyRate;
-    
+
     // i-Attend savings (85% efficiency improvement based on industry data)
     const efficiencyGain = 0.85;
     const hoursSaved = annualHours * efficiencyGain;
     const costSavings = hoursSaved * hourlyRate;
-    
+
     // Additional benefits
     const errorReduction = annualHours * (errorRate / 100) * hourlyRate * 0.95; // 95% error reduction
     const totalFirstYearSavings = costSavings;
     const fiveYearSavings = totalFirstYearSavings * 5;
-    
+
     // i-Attend typical pricing (estimate)
-    const estimatedAnnualCost = events < 25 ? 2400 : events < 100 ? 4800 : 7200;
+    const estimatedAnnualCost = events < 25 ? 2028 : events < 100 ? 2028 : 2028;
+    // const estimatedAnnualCost = events < 25 ? 2400 : events < 100 ? 4800 : 7200;
     const netSavings = totalFirstYearSavings - estimatedAnnualCost;
     const roi = ((netSavings / estimatedAnnualCost) * 100).toFixed(0);
     const paybackMonths = (estimatedAnnualCost / (totalFirstYearSavings / 12)).toFixed(1);
-    
+
     // FTE equivalent
     const ftesSaved = (hoursSaved / 2080).toFixed(2); // 2080 work hours per year
 
-    setCalculations({
-      // Current state
+
+    const roiResult = {
       eventsPerYear: events,
       totalAttendees: events * attendees,
       hoursPerEvent: totalHoursPerEvent.toFixed(1),
       annualHours: annualHours.toFixed(0),
       annualCost: annualCost.toFixed(0),
-      
-      // Savings
       hoursSaved: hoursSaved.toFixed(0),
       costSavings: costSavings.toFixed(0),
       errorReduction: errorReduction.toFixed(0),
       totalFirstYearSavings: totalFirstYearSavings.toFixed(0),
       fiveYearSavings: fiveYearSavings.toFixed(0),
       ftesSaved: ftesSaved,
-      
-      // ROI metrics
       estimatedAnnualCost: estimatedAnnualCost.toFixed(0),
       netSavings: netSavings.toFixed(0),
       roi: roi,
       paybackMonths: paybackMonths,
-      
-      // Efficiency gains
       efficiencyPercentage: (efficiencyGain * 100).toFixed(0),
       timePerEventAfter: (totalHoursPerEvent * (1 - efficiencyGain)).toFixed(1)
-    });
+    };
 
+    setCalculations(roiResult);
     setShowResults(true);
+    return roiResult;
   };
 
   const handleSubmit = (e: { preventDefault: () => void; }) => {
     e.preventDefault();
-    
+
     // Validate that all required fields are filled
-    if (!formData.organizationType || !formData.organizationSize || 
-        !formData.eventsPerYear || !formData.avgAttendeesPerEvent ||
-        !formData.registrationHours || !formData.checkInHours ||
-        !formData.badgePrintingHours || !formData.certificateHours ||
-        !formData.reportingHours || !formData.avgHourlyRate ||
-        !formData.errorRate || !formData.reworkHours ||
-        !formData.firstName || !formData.lastName ||
-        !formData.email || !formData.company) {
+    if (!formData.organizationType || !formData.organizationSize ||
+      !formData.eventsPerYear || !formData.avgAttendeesPerEvent ||
+      !formData.registrationHours || !formData.checkInHours ||
+      !formData.badgePrintingHours || !formData.certificateHours ||
+      !formData.reportingHours || !formData.avgHourlyRate ||
+      !formData.errorRate || !formData.reworkHours ||
+      !formData.firstName || !formData.lastName ||
+      !formData.email || !formData.company) {
       alert('Please fill in all required fields');
       return;
     }
-    
+
     calculateROI();
   };
 
@@ -190,34 +198,88 @@ export default function IAttendROICalculator() {
   };
 
   const formatCurrency = (value: string | number | bigint) => {
-  const num = Number(value); // convert safely
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(num);
-};
+    const num = Number(value); // convert safely
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(num);
+  };
 
-const formatNumber = (value: string | number | bigint) => {
-  const num = Number(value); // convert safely
-  return new Intl.NumberFormat("en-US").format(num);
-};
+  const formatNumber = (value: string | number | bigint) => {
+    const num = Number(value); // convert safely
+    return new Intl.NumberFormat("en-US").format(num);
+  };
+ 
+  const handleDownloadPDF = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/download-roi-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roiData: calculations }),
+      });
 
+      if (!response.ok) throw new Error("Failed to generate PDF");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "iAttend-ROI-Report.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Error generating PDF. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendEmailAfterDelay = (roiResult: any) => {
+    setTimeout(() => {
+      fetch("/api/send-roi-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          roiData: roiResult,
+        }),
+      });
+    }, 120000);
+  };
 
   if (showResults && calculations) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
+      <div id="roi-report" className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Calculator className="w-8 h-8 text-blue-600" />
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Your ROI Analysis</h1>
-            </div>
-            <p className="text-lg text-gray-600">Here's what manual attendance tracking is really costing you</p>
-          </div>
 
+          <div className='flex justify-center'>
+
+            {/* Logo on the left */}
+            <a href="https://i-attend.com" target="_blank" rel="noopener noreferrer">
+              <img
+                src="/i-attend-h-300.png"
+                alt="i-Attend Logo"
+                className="h-10 w-auto"
+              />
+            </a>
+
+
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Calculator className="w-8 h-8 text-blue-600" />
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Your ROI Analysis</h1>
+              </div>
+              <p className="text-lg text-gray-600">Here's what manual attendance tracking is really costing you</p>
+            </div>
+          </div>
           {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-red-500">
@@ -251,7 +313,7 @@ const formatNumber = (value: string | number | bigint) => {
           {/* Detailed Breakdown */}
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Detailed Cost Breakdown</h2>
-            
+
             <div className="space-y-6">
               {/* Current State */}
               <div className="border-l-4 border-red-500 pl-4">
@@ -378,26 +440,33 @@ const formatNumber = (value: string | number | bigint) => {
               See how i-Attend can save you {formatCurrency(calculations.costSavings)} annually
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors">
-                Schedule a Demo
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors">
-                Start Free 15-Day Trial
-                <ArrowRight className="w-5 h-5" />
-              </button>
+              <a
+                href="https://i-attend.com/register_livedemo.html"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                  Schedule a Demo
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </a>
             </div>
             <div className="flex justify-center gap-4">
-              <button 
+              <button
                 onClick={resetCalculator}
                 className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
               >
                 Calculate Again
               </button>
-              <button className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2 transition-colors">
+              <button
+                onClick={handleDownloadPDF}
+                className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2 transition-colors"
+                disabled={loading}
+              >
                 <Download className="w-4 h-4" />
-                Download PDF Report
+                {loading ? "Generating..." : "Download PDF Report"}
               </button>
+
             </div>
           </div>
 
@@ -411,23 +480,74 @@ const formatNumber = (value: string | number | bigint) => {
     );
   }
 
+
+  const validateStep = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (currentStep === 1) {
+      if (!formData.organizationType) newErrors.organizationType = "Organization type is required.";
+      if (!formData.organizationSize) newErrors.organizationSize = "Organization size is required.";
+      if (!formData.eventsPerYear) newErrors.eventsPerYear = "Events per year is required.";
+      if (!formData.avgAttendeesPerEvent) newErrors.avgAttendeesPerEvent = "Average attendees is required.";
+    }
+
+    if (currentStep === 2) {
+      if (!formData.registrationHours) newErrors.registrationHours = "Required.";
+      if (!formData.checkInHours) newErrors.checkInHours = "Required.";
+      if (!formData.badgePrintingHours) newErrors.badgePrintingHours = "Required.";
+      if (!formData.certificateHours) newErrors.certificateHours = "Required.";
+      if (!formData.reportingHours) newErrors.reportingHours = "Required.";
+      if (!formData.avgHourlyRate) newErrors.avgHourlyRate = "Required.";
+    }
+
+    if (currentStep === 3) {
+      if (!formData.errorRate) newErrors.errorRate = "Error rate is required.";
+      if (!formData.reworkHours) newErrors.reworkHours = "Rework hours are required.";
+    }
+
+    if (currentStep === 4) {
+      if (!formData.firstName) newErrors.firstName = "First name is required.";
+      if (!formData.lastName) newErrors.lastName = "Last name is required.";
+      if (!formData.email) newErrors.email = "Email is required.";
+      if (!formData.company) newErrors.company = "Organization name is required.";
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+
+
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Calculator className="w-10 h-10 text-blue-600" />
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">ROI Calculator</h1>
-          </div>
-          <p className="text-xl text-gray-600 mb-2">
-            What is Manual Attendance Tracking Really Costing You?
-          </p>
-          <p className="text-gray-500">
-            Calculate your hidden costs in under 3 minutes and discover your potential savings
-          </p>
-        </div>
+        <div className='flex'>
 
+          {/* Logo on the left */}
+          <a href="https://i-attend.com" target="_blank" rel="noopener noreferrer">
+            <img
+              src="/i-attend-h-300.png"
+              alt="i-Attend Logo"
+              className="h-10 w-auto"
+            />
+          </a>
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Calculator className="w-10 h-10 text-blue-600" />
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">ROI Calculator</h1>
+            </div>
+            <p className="text-xl text-gray-600 mb-2">
+              What is Manual Attendance Tracking Really Costing You?
+            </p>
+            <p className="text-gray-500">
+              Calculate your hidden costs in under 3 minutes and discover your potential savings
+            </p>
+          </div>
+        </div>
         {/* Progress Bar */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex items-center justify-between mb-2">
@@ -435,7 +555,7 @@ const formatNumber = (value: string | number | bigint) => {
             <span className="text-sm text-gray-500">{Math.round((currentStep / 4) * 100)}% Complete</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 4) * 100}%` }}
             ></div>
@@ -470,6 +590,9 @@ const formatNumber = (value: string | number | bigint) => {
                   <option value="corporate">Corporate Training / L&D Department</option>
                   <option value="other">Other</option>
                 </select>
+                {errors.organizationType && (
+                  <p className="text-red-600 text-sm mt-1">{errors.organizationType}</p>
+                )}
               </div>
 
               <div>
@@ -488,6 +611,9 @@ const formatNumber = (value: string | number | bigint) => {
                   <option value="large">2,500-10,000 members/employees</option>
                   <option value="xlarge">Over 10,000 members/employees</option>
                 </select>
+                {errors.organizationSize && (
+                  <p className="text-red-600 text-sm mt-1">{errors.organizationSize}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -504,6 +630,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="1"
                   />
+                  {errors.eventsPerYear && (
+                    <p className="text-red-600 text-sm mt-1">{errors.eventsPerYear}</p>
+                  )}
                 </div>
 
                 <div>
@@ -519,6 +648,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="1"
                   />
+                  {errors.avgAttendeesPerEvent && (
+                    <p className="text-red-600 text-sm mt-1">{errors.avgAttendeesPerEvent}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -548,6 +680,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="0"
                   />
+                  {errors.registrationHours && (
+                    <p className="text-red-600 text-sm mt-1">{errors.registrationHours}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Creating forms, processing registrations</p>
                 </div>
 
@@ -565,6 +700,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="0"
                   />
+                  {errors.checkInHours && (
+                    <p className="text-red-600 text-sm mt-1">{errors.checkInHours}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Day-of check-in, attendance tracking</p>
                 </div>
 
@@ -582,6 +720,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="0"
                   />
+                  {errors.badgePrintingHours && (
+                    <p className="text-red-600 text-sm mt-1">{errors.badgePrintingHours}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Designing, printing, assembling badges</p>
                 </div>
 
@@ -599,6 +740,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="0"
                   />
+                  {errors.certificateHours && (
+                    <p className="text-red-600 text-sm mt-1">{errors.certificateHours}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Creating, distributing certificates/credits</p>
                 </div>
 
@@ -616,6 +760,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="0"
                   />
+                  {errors.reportingHours && (
+                    <p className="text-red-600 text-sm mt-1">{errors.reportingHours}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Compiling reports, updating databases</p>
                 </div>
 
@@ -633,6 +780,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="1"
                   />
+                  {errors.avgHourlyRate && (
+                    <p className="text-red-600 text-sm mt-1">{errors.avgHourlyRate}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Blended rate for staff doing this work</p>
                 </div>
               </div>
@@ -670,6 +820,9 @@ const formatNumber = (value: string | number | bigint) => {
                     min="0"
                     max="50"
                   />
+                  {errors.errorRate && (
+                    <p className="text-red-600 text-sm mt-1">{errors.errorRate}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Percentage of work requiring corrections (typical: 5-15%)</p>
                 </div>
 
@@ -687,6 +840,9 @@ const formatNumber = (value: string | number | bigint) => {
                     required
                     min="0"
                   />
+                  {errors.reworkHours && (
+                    <p className="text-red-600 text-sm mt-1">{errors.reworkHours}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">Hours per event spent fixing mistakes</p>
                 </div>
               </div>
@@ -724,7 +880,7 @@ const formatNumber = (value: string | number | bigint) => {
               <div className="bg-gray-50 rounded-lg p-6">
                 <h3 className="font-semibold text-gray-900 mb-2">Beyond Time & Money</h3>
                 <p className="text-sm text-gray-600">
-                  Errors also impact member satisfaction, staff morale, compliance risk, and your organization's reputation. 
+                  Errors also impact member satisfaction, staff morale, compliance risk, and your organization's reputation.
                   Automated systems reduce errors by up to 95%, virtually eliminating these hidden costs.
                 </p>
               </div>
@@ -753,6 +909,9 @@ const formatNumber = (value: string | number | bigint) => {
                     placeholder="John"
                     required
                   />
+                  {errors.firstName && (
+                    <p className="text-red-600 text-sm mt-1">{errors.firstName}</p>
+                  )}
                 </div>
 
                 <div>
@@ -767,6 +926,9 @@ const formatNumber = (value: string | number | bigint) => {
                     placeholder="Smith"
                     required
                   />
+                  {errors.lastName && (
+                    <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>
+                  )}
                 </div>
 
                 <div>
@@ -781,6 +943,9 @@ const formatNumber = (value: string | number | bigint) => {
                     placeholder="john.smith@example.com"
                     required
                   />
+                  {errors.email && (
+                    <p className="text-red-600 text-sm mt-1">{errors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -808,6 +973,9 @@ const formatNumber = (value: string | number | bigint) => {
                     placeholder="Your Organization"
                     required
                   />
+                  {errors.company && (
+                    <p className="text-red-600 text-sm mt-1">{errors.company}</p>
+                  )}
                 </div>
               </div>
 
@@ -820,8 +988,8 @@ const formatNumber = (value: string | number | bigint) => {
                   className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label htmlFor="sendReport" className="text-sm text-gray-700">
-                  Yes, email me a detailed PDF report with my ROI analysis and implementation guide. 
-                  I also agree to receive helpful resources about attendance tracking best practices. 
+                  Yes, email me a detailed PDF report with my ROI analysis and implementation guide.
+                  I also agree to receive helpful resources about attendance tracking best practices.
                   (Unsubscribe anytime)
                 </label>
               </div>
@@ -871,11 +1039,17 @@ const formatNumber = (value: string | number | bigint) => {
                 ← Previous
               </button>
             )}
-            
+
             {currentStep < 4 ? (
               <button
                 type="button"
-                onClick={() => setCurrentStep(currentStep + 1)}
+                onClick={() => {
+                  if (validateStep()) {
+                    setErrors({});
+                    setCurrentStep(currentStep + 1);
+                  }
+                }}
+
                 className="ml-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
               >
                 Continue
@@ -884,9 +1058,12 @@ const formatNumber = (value: string | number | bigint) => {
             ) : (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  calculateROI();
+                onClick={async () => {
+                  if (validateStep()) {
+                    setErrors({});
+                    const roiResult = calculateROI();  // Now you have fresh ROI!
+                    sendEmailAfterDelay(roiResult);
+                  }
                 }}
                 className="ml-auto px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
               >
