@@ -250,7 +250,7 @@ export default function IAttendROICalculator() {
           roiData: roiResult,
         }),
       });
-    }, 120000);
+    }, 30000);
   };
 
   if (showResults && calculations) {

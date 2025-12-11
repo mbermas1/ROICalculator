@@ -60,9 +60,9 @@ export async function POST(req: Request) {
     });
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
-  } catch (err) {
+  } catch (err: any) {
     console.error("PDF Email Error:", err);
-    return new Response(JSON.stringify({ error: "Failed to send email" }), {
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
     });
   }
