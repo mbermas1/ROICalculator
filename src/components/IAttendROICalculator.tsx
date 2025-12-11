@@ -72,8 +72,7 @@ export default function IAttendROICalculator() {
       ...prev,
       [field]: value
     }));
-
-    // Remove error message instantly when user starts typing/selecting
+ 
     setErrors(prevErrors => {
       const newErrors = { ...prevErrors };
       delete newErrors[field];
