@@ -1,6 +1,4 @@
-export const config = {
-  runtime: "nodejs",
-};
+export const runtime = "nodejs";
 
 import nodemailer from "nodemailer";
 import puppeteer from "puppeteer-core";

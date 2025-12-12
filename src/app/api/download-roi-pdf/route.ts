@@ -1,6 +1,4 @@
-export const config = {
-  runtime: "nodejs",
-};
+export const runtime = "nodejs";
 
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
