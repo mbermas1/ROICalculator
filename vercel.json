@@ -1,1 +1,10 @@
-{ "functions": { "src/app/api/**/*.js": { "runtime": "nodejs18.x", "memory": 1024, "maxDuration": 30, "includeFiles": "node_modules/@sparticuz/chromium/**" } } }
+{
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "runtime": "nodejs18.x",
+      "memory": 1024,
+      "maxDuration": 30,
+      "includeFiles": "node_modules/@sparticuz/chromium/**,node_modules/puppeteer-core/**"
+    }
+  }
+}
