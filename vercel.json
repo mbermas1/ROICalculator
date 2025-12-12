@@ -1,13 +1,10 @@
 {
   "functions": {
-    "src/app/api/**/route.ts": {
+    "src/app/api/**/*.js": {
       "runtime": "nodejs20.x",
       "memory": 1024,
       "maxDuration": 30,
-      "includeFiles": [
-        "node_modules/@sparticuz/chromium/**",
-        "node_modules/puppeteer-core/**"
-      ]
+      "includeFiles": "node_modules/@sparticuz/chromium/**,node_modules/puppeteer-core/**"
     }
   }
 }
