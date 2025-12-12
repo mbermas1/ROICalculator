@@ -33,13 +33,19 @@ export async function POST(req: Request) {
 
     await browser.close();
 
-    return new Response(pdfBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'attachment; filename="iAttend-ROI-Report.pdf"',
-      },
-    });
+  // Convert Uint8Array → Safe ArrayBuffer 
+
+const arrayBuffer: ArrayBuffer = new Uint8Array(pdfBuffer).buffer;
+
+return new Response(arrayBuffer, {
+  status: 200,
+  headers: {
+    "Content-Type": "application/pdf",
+    "Content-Disposition": 'attachment; filename="iAttend-ROI-Report.pdf"',
+  },
+});
+
+
   } catch (err: any) {
     return new Response(
       JSON.stringify({
