@@ -5,11 +5,13 @@ import { ROIReportPDF } from "@/components/pdf/ROIReportPDF";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, roiData } = await req.json();
+    const { email, roiData, firstname } = await req.json();
+    const baseUrl = req.nextUrl.origin;
+    const logoAbsoluteUrl = `${baseUrl}/i-attend-h-300.png`;
 
     // Generate PDF stream
     const stream = await renderToStream(
-      <ROIReportPDF calculations={roiData} logoUrl="/i-attend-h-300.png" />
+      <ROIReportPDF calculations={roiData} logoUrl={logoAbsoluteUrl} />
     );
 
     // Convert stream to buffer
@@ -19,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
     const pdfBuffer = Buffer.concat(chunks);
 
-    // Configure Nodemailer using your environment variables
+    // Configure email
     const transporter = nodemailer.createTransport({
       host: process.env.SCHEDULE_SMTP,
       port: Number(process.env.SCHEDULE_PORT || 587),
@@ -29,12 +31,25 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send email with PDF attachment
+    // Updated Email Body
+    const messageText = `Hey ${firstname},
+
+Please find the i-Attend ROI report as you had requested.
+
+Note that ROI results are estimates and may not reflect actual outcomes. We encourage you to schedule a DEMO to learn more about the software.
+
+Regards,
+i-Attend Team
+https://www.i-attend.com
+Registration * Attendance Tracking * Certificates * Surveys * Reports
+`;
+
+    // Send Email
     await transporter.sendMail({
-      from: process.env.SCHEDULE_FROM_EMAIL || "no-reply@i-attend.com",
+      from: `"i-Attend Info" <info@i-Attend.com>`,
       to: email,
-      subject: "Your ROI Report",
-      text: "Please find your ROI report attached.",
+      subject: "Your i-Attend ROI Report",
+      text: messageText,
       attachments: [
         {
           filename: "iAttend-ROI-Report.pdf",

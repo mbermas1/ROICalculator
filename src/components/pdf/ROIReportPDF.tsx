@@ -13,6 +13,12 @@ interface ROIReportPDFProps {
   logoUrl: string;
 }
 
+const formatNumber = (num: number | string) => {
+  const n = Number(num);
+  if (isNaN(n)) return num;
+  return n.toLocaleString("en-US");
+};
+
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
@@ -76,9 +82,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 5,
   },
-  red: { color: "#d9534f" },
-  green: { color: "#0a9b50" },
-  blue: { color: "#0d6efd" },
+  footer: {
+    marginTop: 30,
+    textAlign: "center",
+    fontSize: 10,
+    color: "#333",
+  },
 });
 
 export const ROIReportPDF: React.FC<ROIReportPDFProps> = ({
@@ -94,67 +103,112 @@ export const ROIReportPDF: React.FC<ROIReportPDFProps> = ({
           Here's what manual attendance tracking is really costing you
         </Text>
 
-        {/* Cards */}
+        {/* Top Cards */}
         <View style={styles.cards}>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>ANNUAL COST (CURRENT)</Text>
-            <Text style={[styles.cardValue, styles.red]}>
-              ${calculations.annualCost}
+            <Text style={[styles.cardValue, { color: "#d9534f" }]}>
+              ${formatNumber(calculations.annualCost)}
             </Text>
-            <Text>{calculations.annualHours} hours/year</Text>
+            <Text>{formatNumber(calculations.annualHours)} hours/year</Text>
           </View>
+
           <View style={styles.card}>
             <Text style={styles.cardTitle}>ANNUAL SAVINGS</Text>
-            <Text style={[styles.cardValue, styles.green]}>
-              ${calculations.costSavings}
+            <Text style={[styles.cardValue, { color: "#0a9b50" }]}>
+              ${formatNumber(calculations.costSavings)}
             </Text>
-            <Text>{calculations.hoursSaved} hours saved</Text>
+            <Text>{formatNumber(calculations.hoursSaved)} hours saved</Text>
           </View>
+
           <View style={styles.card}>
             <Text style={styles.cardTitle}>ROI</Text>
-            <Text style={[styles.cardValue, styles.blue]}>
-              {calculations.roi}%
+            <Text style={[styles.cardValue, { color: "#0d6efd" }]}>
+              {formatNumber(calculations.roi)}%
             </Text>
-            <Text>Payback in {calculations.paybackMonths} months</Text>
+            <Text>Payback in {formatNumber(calculations.paybackMonths)} months</Text>
           </View>
         </View>
 
         {/* Sections */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, styles.red]}>
+          <Text style={[styles.sectionTitle, { color: "#d9534f" }]}>
             Current Manual Process
           </Text>
-          <Text>Events per year: {calculations.eventsPerYear}</Text>
-          <Text>Total attendees annually: {calculations.totalAttendees}</Text>
-          <Text>Hours per event: {calculations.hoursPerEvent}</Text>
-          <Text>Annual labor hours: {calculations.annualHours}</Text>
-          <Text style={[styles.valueBig, styles.red]}>
-            ${calculations.annualCost}
+
+          <Text>Events per year: {formatNumber(calculations.eventsPerYear)}</Text>
+          <Text>
+            Total attendees annually: {formatNumber(calculations.totalAttendees)}
+          </Text>
+          <Text>Hours per event: {formatNumber(calculations.hoursPerEvent)}</Text>
+          <Text>
+            Annual labor hours: {formatNumber(calculations.annualHours)}
+          </Text>
+
+          <Text style={[styles.valueBig, { color: "#d9534f" }]}>
+            ${formatNumber(calculations.annualCost)}
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, styles.green]}>
+          <Text style={[styles.sectionTitle, { color: "#0a9b50" }]}>
             With i-Attend Automation
           </Text>
-          <Text>Hours saved annually: {calculations.hoursSaved}</Text>
-          <Text>FTE equivalent saved: {calculations.ftesSaved || "0.23 FTE"}</Text>
-          <Text>Efficiency improvement: {calculations.efficiencyPercentage}%</Text>
-          <Text>Time per event (after): {calculations.timePerEventAfter} hours</Text>
-          <Text style={[styles.valueBig, styles.green]}>
-            ${calculations.netSavings}
+
+          <Text>Hours saved annually: {formatNumber(calculations.hoursSaved)}</Text>
+          <Text>
+            FTE equivalent saved:{" "}
+            {formatNumber(calculations.ftesSaved || "0.23")}
+          </Text>
+          <Text>
+            Efficiency improvement:{" "}
+            {formatNumber(calculations.efficiencyPercentage)}%
+          </Text>
+          <Text>
+            Time per event (after):{" "}
+            {formatNumber(calculations.timePerEventAfter)} hours
+          </Text>
+
+          <Text style={[styles.valueBig, { color: "#0a9b50" }]}>
+            ${formatNumber(calculations.netSavings)}
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, styles.blue]}>
+          <Text style={[styles.sectionTitle, { color: "#0d6efd" }]}>
             Investment Analysis
           </Text>
-          <Text>Estimated i-Attend cost: ${calculations.estimatedAnnualCost}</Text>
-          <Text>Net first-year savings: ${calculations.netSavings}</Text>
-          <Text>Return on investment: {calculations.roi}%</Text>
-          <Text style={[styles.valueBig, styles.blue]}>
-            5-year total savings: ${calculations.fiveYearSavings}
+
+          <Text>
+            Estimated i-Attend cost: $
+            {formatNumber(calculations.estimatedAnnualCost)}
+          </Text>
+          <Text>
+            Net first-year savings: ${formatNumber(calculations.netSavings)}
+          </Text>
+          <Text>Return on investment: {formatNumber(calculations.roi)}%</Text>
+
+          <Text style={[styles.valueBig, { color: "#0d6efd" }]}>
+            5-year total savings: ${formatNumber(calculations.fiveYearSavings)}
+          </Text>
+        </View>
+
+        {/* FOOTER / DISCLAIMER */}
+        <View style={styles.footer}>
+          <Text>
+            Disclaimer: This tool is for informational purposes only and should
+            not be considered financial advice. Results are estimates and may
+            not reflect actual outcomes.
+          </Text>
+
+          <Text>i-Attend Platform</Text>
+          <Text>https://www.i-attend.com</Text>
+          <Text>
+            Registration * Attendance Tracking * Certificates * Surveys * Reports
+          </Text>
+
+          <Text>
+            Copyright © TNETIC, Inc., All rights reserved.
           </Text>
         </View>
       </Page>

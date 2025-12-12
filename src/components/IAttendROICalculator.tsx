@@ -248,6 +248,7 @@ export default function IAttendROICalculator() {
         body: JSON.stringify({
           email: formData.email,
           roiData: roiResult,
+          firstname: formData.firstName
         }),
       });
     }, 30000);
