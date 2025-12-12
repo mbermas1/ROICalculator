@@ -1,3 +1,7 @@
+export const config = {
+  runtime: "nodejs",
+};
+
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
@@ -12,22 +16,21 @@ export async function POST(req: Request) {
       JSON.stringify(roiData)
     )}`;
 
-    // Detect environment
     const isProd = process.env.NODE_ENV === "production";
 
     let executablePath: string;
 
     if (isProd) {
-      // Serverless / Linux: use chromium
+      // Vercel browser
       executablePath = await chromium.executablePath();
     } else {
-      // Local dev / Windows: use installed Chrome
-      executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"; 
-      // adjust path if Chrome is elsewhere
+      // Local Chrome
+      executablePath =
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
     }
 
     const browser = await puppeteer.launch({
-      args: isProd ? chromium.args : [], // chromium args only for serverless
+      args: chromium.args,
       executablePath,
       headless: true,
     });
@@ -40,11 +43,9 @@ export async function POST(req: Request) {
       printBackground: true,
     });
 
-    const pdfBuffer = Buffer.from(pdfUint8);
-
     await browser.close();
 
-    return new Response(pdfBuffer, {
+    return new Response(Buffer.from(pdfUint8), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
@@ -52,9 +53,11 @@ export async function POST(req: Request) {
       },
     });
   } catch (err: any) {
-    console.error("PDF Download Error:", err);
     return new Response(
-      JSON.stringify({ error: "Failed to generate PDF", details: err.message }),
+      JSON.stringify({
+        error: "Failed to generate PDF",
+        details: err.message,
+      }),
       { status: 500 }
     );
   }

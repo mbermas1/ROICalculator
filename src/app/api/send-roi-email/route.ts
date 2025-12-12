@@ -1,3 +1,7 @@
+export const config = {
+  runtime: "nodejs",
+};
+
 import nodemailer from "nodemailer";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
@@ -15,27 +19,28 @@ export async function POST(req: Request) {
 
     console.log("PDF URL:", pdfUrl);
 
-    // Detect environment
+    // ----- Detect Environment -----
     const isProd = process.env.NODE_ENV === "production";
 
-    let executablePath: string | null = null;
+    let executablePath: string;
 
     if (isProd) {
-      // Serverless Linux environment
+      // Vercel: uses bundled Serverless Chromium
       executablePath = await chromium.executablePath();
     } else {
-      // Local Windows development: use Chrome installed on your machine
-      executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+      // Local Windows Chrome path
+      executablePath =
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
     }
 
+    // ----- Launch Puppeteer -----
     const browser = await puppeteer.launch({
-      args: isProd ? chromium.args : [],
+      args: chromium.args,
       executablePath,
       headless: true,
     });
 
     const page = await browser.newPage();
-
     await page.goto(pdfUrl, { waitUntil: "networkidle0" });
 
     const pdfUint8 = await page.pdf({
@@ -43,11 +48,11 @@ export async function POST(req: Request) {
       printBackground: true,
     });
 
-    const pdfBuffer = Buffer.from(pdfUint8);
-
     await browser.close();
 
-    // Nodemailer transport
+    const pdfBuffer = Buffer.from(pdfUint8);
+
+    // ----- Nodemailer Transport -----
     const transporter = nodemailer.createTransport({
       host: process.env.SCHEDULE_SMTP,
       port: Number(process.env.SCHEDULE_PORT),
@@ -58,6 +63,7 @@ export async function POST(req: Request) {
       },
     });
 
+    // ----- Send Email -----
     await transporter.sendMail({
       from: process.env.SCHEDULE_FROM_EMAIL,
       to: email,
