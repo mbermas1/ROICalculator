@@ -1,8 +1,9 @@
-"use client";
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+"use client"; 
+import html2pdf from 'html2pdf.js'; 
 import { Calculator, TrendingDown, Clock, DollarSign, AlertCircle, CheckCircle, Download, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { PDFDownloadLink} from '@react-pdf/renderer';
+import { ROIReportPDF } from './pdf/ROIReportPDF';
 
 interface ROICalculations {
   eventsPerYear: number;
@@ -23,8 +24,7 @@ interface ROICalculations {
   efficiencyPercentage: string;
   timePerEventAfter: string;
 }
-
-
+ 
 export default function IAttendROICalculator() {
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -72,7 +72,7 @@ export default function IAttendROICalculator() {
       ...prev,
       [field]: value
     }));
- 
+
     setErrors(prevErrors => {
       const newErrors = { ...prevErrors };
       delete newErrors[field];
@@ -211,34 +211,34 @@ export default function IAttendROICalculator() {
     return new Intl.NumberFormat("en-US").format(num);
   };
  
-  const handleDownloadPDF = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/download-roi-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roiData: calculations }),
-      });
+  // const handleDownloadPDF = async () => {
+  //   setLoading(true);
+  //   try {
+  //     const response = await fetch("/api/download-roi-pdf", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ roiData: calculations }),
+  //     });
 
-      if (!response.ok) throw new Error("Failed to generate PDF");
+  //     if (!response.ok) throw new Error("Failed to generate PDF");
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+  //     const blob = await response.blob();
+  //     const url = window.URL.createObjectURL(blob);
 
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "iAttend-ROI-Report.pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert("Error generating PDF. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     const link = document.createElement("a");
+  //     link.href = url;
+  //     link.download = "iAttend-ROI-Report.pdf";
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     link.remove();
+  //     window.URL.revokeObjectURL(url);
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert("Error generating PDF. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const sendEmailAfterDelay = (roiResult: any) => {
     setTimeout(() => {
@@ -457,14 +457,17 @@ export default function IAttendROICalculator() {
               >
                 Calculate Again
               </button>
-              <button
+              <PDFDownloadLink className='text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2 transition-colors' document={<ROIReportPDF calculations={calculations} logoUrl={'/i-attend-h-300.png'} />} fileName="iAttend-ROI-Report.pdf">
+                {({ loading }) => (loading ? 'Generating PDF...' : 'Download PDF Report')}
+              </PDFDownloadLink>
+              {/* <button
                 onClick={handleDownloadPDF}
                 className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-2 transition-colors"
                 disabled={loading}
               >
                 <Download className="w-4 h-4" />
                 {loading ? "Generating..." : "Download PDF Report"}
-              </button>
+              </button> */}
 
             </div>
           </div>
