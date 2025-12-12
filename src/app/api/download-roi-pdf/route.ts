@@ -1,59 +1,49 @@
-export const runtime = "nodejs";
-
+import { roiHtmlTemplate } from "@/app/api/pdf-template";
 import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
+import puppeteerCore from "puppeteer-core";
+import puppeteer from "puppeteer";
+
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
     const { roiData } = await req.json();
+    const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL;
+    const html = roiHtmlTemplate(roiData, origin);
 
-    const origin =
-      req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL;
+    const isVercel = process.env.VERCEL === "1";
 
-    const pdfUrl = `${origin}/roi-pdf?data=${encodeURIComponent(
-      JSON.stringify(roiData)
-    )}`;
-
-    const isProd = process.env.NODE_ENV === "production";
-
-    let executablePath: string;
-
-    if (isProd) {
-      // Vercel browser
-      executablePath = await chromium.executablePath();
-    } else {
-      // Local Chrome
-      executablePath =
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-    }
-
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath,
-      headless: true,
-    });
+    const browser = isVercel
+      ? await puppeteerCore.launch({
+          args: chromium.args,
+          executablePath: await chromium.executablePath(),
+          headless: true,
+        })
+      : await puppeteer.launch({
+          headless: true,
+        });
 
     const page = await browser.newPage();
-    await page.goto(pdfUrl, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdfUint8 = await page.pdf({
-      format: "A4",
+    const pdfBuffer = await page.pdf({
+      format: "a4",
       printBackground: true,
     });
 
     await browser.close();
 
-    return new Response(Buffer.from(pdfUint8), {
+    return new Response(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=iAttend-ROI-Report.pdf",
+        "Content-Disposition": 'attachment; filename="iAttend-ROI-Report.pdf"',
       },
     });
   } catch (err: any) {
     return new Response(
       JSON.stringify({
-        error: "Failed to generate PDF",
+        error: "PDF generation failed",
         details: err.message,
       }),
       { status: 500 }

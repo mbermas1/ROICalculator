@@ -241,16 +241,16 @@ export default function IAttendROICalculator() {
   };
 
   const sendEmailAfterDelay = (roiResult: any) => {
-    // setTimeout(() => {
-    //   fetch("/api/send-roi-email", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({
-    //       email: formData.email,
-    //       roiData: roiResult,
-    //     }),
-    //   });
-    // }, 30000);
+    setTimeout(() => {
+      fetch("/api/send-roi-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          roiData: roiResult,
+        }),
+      });
+    }, 30000);
   };
 
   if (showResults && calculations) {

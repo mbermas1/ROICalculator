@@ -1,59 +1,48 @@
-export const runtime = "nodejs";
-
-import nodemailer from "nodemailer";
-import puppeteer from "puppeteer-core";
+ 
+import { roiHtmlTemplate } from "@/app/api/pdf-template";
 import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer"; // full Puppeteer locally
+import puppeteerCore from "puppeteer-core"; // for production
+import nodemailer from "nodemailer";
+
+export const runtime = "nodejs"; // IMPORTANT FOR VERCEL
 
 export async function POST(req: Request) {
   try {
     const { email, roiData } = await req.json();
 
-    const origin =
-      req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL;
+    const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_BASE_URL;
 
-    const pdfUrl = `${origin}/roi-pdf?data=${encodeURIComponent(
-      JSON.stringify(roiData)
-    )}`;
+    // Generate HTML directly
+    const html = roiHtmlTemplate(roiData, origin);
 
-    console.log("PDF URL:", pdfUrl);
+    // Detect environment
+    const isVercel = process.env.VERCEL === "1";
 
-    // ----- Detect Environment -----
-    const isProd = process.env.NODE_ENV === "production";
-
-    let executablePath: string;
-
-    if (isProd) {
-      // Vercel: uses bundled Serverless Chromium
-      executablePath = await chromium.executablePath();
-    } else {
-      // Local Windows Chrome path
-      executablePath =
-        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-    }
-
-    // ----- Launch Puppeteer -----
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath,
-      headless: true,
-    });
+    // Launch Puppeteer
+    const browser = await (isVercel
+      ? puppeteerCore.launch({
+          args: chromium.args,
+          executablePath: await chromium.executablePath(),
+          headless: true,
+        })
+      : puppeteer.launch({ headless: true }) // full Puppeteer locally
+    );
 
     const page = await browser.newPage();
-    await page.goto(pdfUrl, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const pdfUint8 = await page.pdf({
-      format: "A4",
-      printBackground: true,
-    });
-
+    // Generate PDF
+    const pdfUint8 = await page.pdf({ format: "a4", printBackground: true });
     await browser.close();
 
+    // Convert Uint8Array to Buffer
     const pdfBuffer = Buffer.from(pdfUint8);
 
-    // ----- Nodemailer Transport -----
+    // Nodemailer transport
     const transporter = nodemailer.createTransport({
       host: process.env.SCHEDULE_SMTP,
-      port: Number(process.env.SCHEDULE_PORT),
+      port: Number(process.env.SCHEDULE_PORT) || 587,
       secure: false,
       auth: {
         user: process.env.SCHEDULE_USER_NAME,
@@ -61,7 +50,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // ----- Send Email -----
+    // Send email
     await transporter.sendMail({
       from: process.env.SCHEDULE_FROM_EMAIL,
       to: email,
@@ -70,7 +59,7 @@ export async function POST(req: Request) {
       attachments: [
         {
           filename: "iAttend-ROI-Report.pdf",
-          content: pdfBuffer,
+          content: pdfBuffer, // now correctly typed
         },
       ],
     });
